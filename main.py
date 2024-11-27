@@ -1,13 +1,14 @@
 import pandas as pd
+import plotly.express as px
 
-# Carregar o dataset
+# Carregar o dataset atualizado
 merged_data = pd.read_csv("covid-eua.csv")
 
-# Converter a coluna 'todays_date' para o formato de data
-merged_data["todays_date"] = pd.to_datetime(merged_data["todays_date"])
+# Verificar se as colunas lat e lng estão corretas
+merged_data = merged_data.dropna(subset=["lat", "lng"])
 
-# Agrupar os dados por mês e cidade, somando as colunas numéricas
-monthly_data = merged_data.groupby([merged_data["county"], merged_data["todays_date"].dt.to_period("M")]).agg({
+# Agrupar os dados por cidade/condado e mês, somando as colunas numéricas (por exemplo, hospitalizados)
+monthly_data = merged_data.groupby(["county", "todays_date"]).agg({
     "hospitalized_covid_confirmed_patients": "sum",
     "hospitalized_suspected_covid_patients": "sum",
     "hospitalized_covid_patients": "sum",
@@ -15,14 +16,23 @@ monthly_data = merged_data.groupby([merged_data["county"], merged_data["todays_d
     "icu_covid_confirmed_patients": "sum",
     "icu_suspected_covid_patients": "sum",
     "icu_available_beds": "sum",
-    "lat": "first",  # Mantém a lat constante (o valor da primeira linha)
-    "lng": "first",  # Mantém a long constante (o valor da primeira linha)
+    "lat": "first",  # Mantém a lat constante
+    "lng": "first",  # Mantém a lng constante
 }).reset_index()
 
-# Atualizar a coluna 'todays_date' para mostrar apenas o ano e mês no formato YYYY-MM
-monthly_data["todays_date"] = monthly_data["todays_date"].dt.strftime('%Y-%m')
+# Criar o gráfico de mapa
+fig = px.scatter_geo(
+    monthly_data,
+    lat="lat",  # Coluna de lat
+    lon="lng",  # Coluna de lng
+    hover_name="county",  # Nome da cidade/condado que aparece ao passar o mouse
+    size="hospitalized_covid_patients",  # Tamanho dos pontos de acordo com o número de pacientes
+    color="hospitalized_covid_patients",  # Cor dos pontos de acordo com o número de pacientes
+    title="Mapa de Casos de COVID-19 nos EUA - Por Mês",
+    template="plotly_dark",  # Usar o tema de fundo escuro
+    projection="albers usa",  # Projeção focada nos EUA
+    animation_frame="todays_date",  # Animação por mês (se desejar ver a evolução)
+)
 
-# Salvar o dataset mensal
-monthly_data.to_csv("covid-eua.csv", index=False)
-
-print("Dados transformados de diário para mensal (ano/mês). Arquivo 'covid-eua-mensal.csv' criado com sucesso!")
+# Exibir o gráfico
+fig.show()
