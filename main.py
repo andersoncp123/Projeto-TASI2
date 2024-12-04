@@ -5,8 +5,6 @@ import plotly.express as px
 
 # Carregar dados
 df = pd.read_csv("covid-eua.csv")
-
-# Converter as datas para o formato correto
 df["todays_date"] = pd.to_datetime(df["todays_date"])
 
 # Gerar marcas de anos únicas para o slider
@@ -17,12 +15,11 @@ year_marks = {i: str(year) for i, year in enumerate(years)}
 app = dash.Dash(__name__)
 
 # Layout do app
-app.layout = html.Div([
-    html.Div([
-        dcc.Graph(id="map-graph"),
-    ]),
+app.layout = html.Div(style={"fontFamily": "Arial, sans-serif", "padding": "20px"}, children=[
+    # Controles no topo
     html.Div([
         html.Div([
+            html.Div("Selecione o Tipo de Dados:", style={"fontWeight": "bold", "marginBottom": "10px"}),
             dcc.RadioItems(
                 id="variable-selector",
                 options=[
@@ -30,32 +27,66 @@ app.layout = html.Div([
                     {"label": "ICU Cases", "value": "icu"}
                 ],
                 value="hospital",
-                labelStyle={'display': 'inline-block'}
+                labelStyle={
+                    "display": "inline-block",
+                    "marginRight": "10px",
+                    "padding": "5px 10px",
+                    "border": "1px solid #ccc",
+                    "borderRadius": "5px",
+                    "cursor": "pointer"
+                },
+                inputStyle={"marginRight": "5px"}
             ),
-            dcc.RangeSlider(
-                id="time-slider",
-                min=0,
-                max=len(years) - 1,
-                step=1,
-                value=[0, len(years) - 1],
-                marks=year_marks
-            ),
-            dcc.Graph(id="line-graph"),
-        ], style={"width": "75%", "display": "inline-block"}),
+        ], style={"marginBottom": "20px"}),
+
+        html.Div("Selecione o Intervalo de Tempo:", style={"fontWeight": "bold", "marginBottom": "10px"}),
+        dcc.RangeSlider(
+            id="time-slider",
+            min=0,
+            max=len(years) - 1,
+            step=1,
+            value=[0, len(years) - 1],
+            marks=year_marks,
+            tooltip={"placement": "bottom", "always_visible": True},
+        ),
+    ], style={"marginBottom": "30px"}),
+
+    # Divisão principal: mapa e gráfico lado a lado
+    html.Div([
+        html.Div([
+            dcc.Graph(id="map-graph"),
+        ], style={"width": "48%", "display": "inline-block", "verticalAlign": "top", "paddingRight": "10px"}),
 
         html.Div([
-            html.H4("Cidades Selecionadas"),
-            html.Ul(id="selected-cities", style={"listStyleType": "none"})
-        ], style={"width": "20%", "display": "inline-block", "verticalAlign": "top", "paddingLeft": "20px"})
+            dcc.Graph(id="line-graph"),
+        ], style={"width": "48%", "display": "inline-block", "verticalAlign": "top", "paddingLeft": "10px"}),
+    ], style={"marginBottom": "20px"}),
+
+    # Lista de cidades
+    html.Div([
+        html.H4("Cidades Selecionadas", style={"textAlign": "center", "marginBottom": "10px", "color": "#2c3e50"}),
+        html.Ul(id="selected-cities", style={
+            "listStyleType": "none",
+            "padding": "10px",
+            "backgroundColor": "#ecf0f1",
+            "border": "1px solid #bdc3c7",
+            "borderRadius": "5px",
+            "maxHeight": "200px",
+            "overflowY": "auto",
+            "textAlign": "center",
+            "margin": "0 auto",
+            "width": "50%"
+        })
     ]),
 ])
 
-# Callback para atualizar o mapa
+# Callback para atualizar o mapa com transparência nas bolinhas
 @app.callback(
     Output("map-graph", "figure"),
     Input("variable-selector", "value")
 )
 def update_map(selected_variable):
+    # Ajustar o gráfico de dispersão com opacidade nas bolinhas
     fig = px.scatter_mapbox(
         df,
         lat="lat",
@@ -63,10 +94,16 @@ def update_map(selected_variable):
         size="hospitalized_covid_confirmed_patients",
         hover_name="county",
         mapbox_style="carto-positron",
-        center={"lat": 37.0902, "lon": -95.7129},  # Centralizado nos EUA
-        zoom=4,
+        center={"lat": 37.0902, "lon": -95.7129},
+        zoom=3,
+        opacity=0.5,  # Definindo transparência para as bolinhas
+        size_max=20,  # Ajuste do tamanho máximo das bolinhas para evitar sobrecarga
     )
+    
+    # Definir transparência proporcional ao tamanho das bolinhas
+    fig.update_traces(marker=dict(opacity=0.5))
     return fig
+
 
 # Callback para atualizar gráfico de linhas e lista de cidades
 @app.callback(
@@ -118,4 +155,4 @@ def update_line(selected_data, selected_variable, time_range, relayout_data):
     return fig, selected_cities
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
