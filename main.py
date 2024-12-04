@@ -11,6 +11,20 @@ df["todays_date"] = pd.to_datetime(df["todays_date"])
 years = sorted(df["todays_date"].dt.year.unique())
 year_marks = {i: str(year) for i, year in enumerate(years)}
 
+# Dicionário de apelidos para as variáveis
+variable_names = {
+    "hospital": {
+        "hospitalized_covid_confirmed_patients": "Pacientes Confirmados (Hospital)",
+        "hospitalized_suspected_covid_patients": "Pacientes Suspeitos (Hospital)",
+        "all_hospital_beds": "Leitos Disponíveis (Hospital)"
+    },
+    "icu": {
+        "icu_covid_confirmed_patients": "Pacientes Confirmados (UTI)",
+        "icu_suspected_covid_patients": "Pacientes Suspeitos (UTI)",
+        "icu_available_beds": "Leitos Disponíveis (UTI)"
+    }
+}
+
 # Inicializar o app
 app = dash.Dash(__name__)
 
@@ -86,12 +100,20 @@ app.layout = html.Div(style={"fontFamily": "Arial, sans-serif", "padding": "20px
     Input("variable-selector", "value")
 )
 def update_map(selected_variable):
+    # Definir o nome da variável e a quantidade de casos para o hover
+    if selected_variable == "hospital":
+        hover_variable = "hospitalized_covid_confirmed_patients"
+        hover_label = "Pacientes Confirmados (Hospital)"
+    else:
+        hover_variable = "icu_covid_confirmed_patients"
+        hover_label = "Pacientes Confirmados (UTI)"
+    
     # Ajustar o gráfico de dispersão com opacidade nas bolinhas
     fig = px.scatter_mapbox(
         df,
         lat="lat",
         lon="lng",
-        size="hospitalized_covid_confirmed_patients",
+        size=hover_variable,
         hover_name="county",
         mapbox_style="carto-positron",
         center={"lat": 37.0902, "lon": -95.7129},
@@ -100,9 +122,19 @@ def update_map(selected_variable):
         size_max=20,  # Ajuste do tamanho máximo das bolinhas para evitar sobrecarga
     )
     
+    # Personalizar o hovertemplate para mostrar apenas o nome do condado, a variável e a quantidade de casos
+    fig.update_traces(
+        hovertemplate=
+        "<b>Condado:</b> %{hovertext}<br>" +
+        f"<b>{hover_label}:</b> %{{customdata[0]}}<br>" +
+        "<extra></extra>",
+        customdata=df[[hover_variable]],  # Passar o valor da variável de interesse
+    )
+
     # Definir transparência proporcional ao tamanho das bolinhas
     fig.update_traces(marker=dict(opacity=0.5))
     return fig
+
 
 
 # Callback para atualizar gráfico de linhas e lista de cidades
@@ -132,25 +164,22 @@ def update_line(selected_data, selected_variable, time_range, relayout_data):
     ]
 
     # Escolher variáveis
-    if selected_variable == "hospital":
-        vars_to_plot = ["hospitalized_covid_confirmed_patients",
-                        "hospitalized_suspected_covid_patients",
-                        "all_hospital_beds"]
-    else:
-        vars_to_plot = ["icu_covid_confirmed_patients",
-                        "icu_suspected_covid_patients",
-                        "icu_available_beds"]
+    vars_to_plot = list(variable_names[selected_variable].keys())
 
     # Somatório diário
     aggregated_df = filtered_df.groupby("todays_date")[vars_to_plot].sum().reset_index()
 
+    # Mudar rótulos para apelidos
+    melted_df = aggregated_df.melt(id_vars=["todays_date"], value_vars=vars_to_plot)
+    melted_df["variable"] = melted_df["variable"].map(lambda x: variable_names[selected_variable][x])
+
     # Gráfico de linhas
     fig = px.line(
-        aggregated_df.melt(id_vars=["todays_date"], value_vars=vars_to_plot),
+        melted_df,
         x="todays_date",
         y="value",
         color="variable",
-        labels={"value": "Cases", "todays_date": "Date"}
+        labels={"value": "Casos", "todays_date": "Data"}
     )
     return fig, selected_cities
 
