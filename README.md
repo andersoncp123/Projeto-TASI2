@@ -2,6 +2,18 @@
 
 Este é um trabalho para a faculdade sobre visualização de dados usando datasets de Covid nas cidades dos Estados Unidos.
 
+As bases de dados fontes utilizadas são:
+
+- **statewide-covid-19-hospital-county-data.csv**: Contém informações sobre os casos de COVID-19.
+- **uscities.csv**: Contém dados sobre os pontos de latitude e longitude das cidades dos EUA.
+
+A base de dados **covid-eua.csv** é um merge das duas bases anteriores, com o seguinte pré-processamento aplicado:
+
+- Remoção de dados duplicados.
+- Agrupamento dos dados por mês.
+- Exclusão de registros com dados faltantes.
+- Atribuição de um único ponto de latitude e longitude para cada condado.
+
 ## Requisitos
 
 - Python 3.x
