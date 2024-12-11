@@ -27,7 +27,7 @@ A base de dados **covid-eua.csv** é um merge das duas bases anteriores, com o s
    
    Depois entre na pasta do projeto com:
    
-   `cd nome-do-repositorio`
+   `cd Projeto-TASI2`
 
 2. Crie um ambiente virtual com o comando:
    
