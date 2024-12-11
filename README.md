@@ -1,6 +1,6 @@
 # TASI2
 
-Este é um trabalho para a faculdade sobre visualização de dados usando datasets de Covid nas cidades dos Estados Unidos.
+Este é um trabalho para a faculdade sobre visualização de dados usando datasets de Covid nos condados dos Estados Unidos.
 
 As bases de dados fontes utilizadas são:
 
